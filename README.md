@@ -1,0 +1,51 @@
+# NWS H3 Impacts
+
+H3-based impact analysis framework for overlaying NWS hazard polygons and NDFD forecast thresholds against population and structure data.
+
+## Goals
+
+- Aggregate population and national structure inventories to H3 resolution 7 (closest practical match to NDFD ~2.5 km)
+- Efficiently evaluate impacts inside NWS hazard polygons via integer H3 joins
+- Apply NDFD parameter thresholds to infer potential impacts
+- Support interactive visualization of hazards and impact summaries
+
+## Quick Start
+
+```bash
+# Create environment and install dependencies
+uv sync
+
+# Or with optional web dependencies later
+uv sync --extra web --extra dev
+
+# Activate (uv handles this automatically with uv run)
+uv run python -m nws_h3_impacts
+```
+
+## Project Layout
+
+```
+src/nws_h3_impacts/     # Main package
+scripts/                # Aggregation and conversion scripts
+notebooks/              # Exploration
+data/                   # Local data (gitignored)
+  raw/                  # Source downloads
+  processed/            # H3-aggregated Parquet files
+.cursor/rules/          # Cursor AI conventions
+```
+
+## Data Notes
+
+- **Structures**: FEMA USA Structures (state-level downloads recommended for initial work)
+- **Population**: WorldPop or LandScan (clip to area of interest first)
+- **Hazards**: `api.weather.gov/alerts/active` (GeoJSON)
+- **Forecasts**: NDFD / GRIB converted to H3 via centroid sampling
+
+Start with a single state or county subset. National full-resolution processing is feasible but memory- and time-intensive.
+
+## Development
+
+- Default H3 resolution: **7**
+- Prefer integer H3 index joins over geometric intersections
+- Store processed aggregates as Parquet keyed on H3 index
+- Use `uv` for environment and dependency management

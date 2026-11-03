@@ -1,0 +1,42 @@
+---
+description: Project conventions for NWS H3 impact analysis
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# NWS H3 Impacts Project Rules
+
+## Core Conventions
+
+- Default H3 resolution is **7** unless the user explicitly requests another resolution.
+- Prefer H3 integer index joins over geometric polygon intersections for impact evaluation.
+- Aggregate population and structure data to H3 once (offline), then join at query time.
+- Store processed results as Parquet files keyed on the H3 index string.
+- Use type hints on function signatures.
+- Prefer `polars` or `pandas` + `pyarrow` for tabular work; `geopandas` for geometry.
+- Keep large data files out of the repository (`data/` is gitignored).
+
+## Libraries
+
+- H3: `h3` (official) and `h3ronpy` for higher-level dataframe/raster operations.
+- Geospatial: `geopandas`, `shapely`, `rasterio`.
+- Forecast data: `xarray` + `cfgrib` for GRIB/NDFD.
+- Environment: `uv` is preferred for dependency management.
+
+## Code Style
+
+- Follow Ruff defaults (line length 100).
+- Extract helper functions when logic exceeds ~30 lines.
+- Add short docstrings to public functions.
+- Prefer explicit column names over positional indexing in dataframes.
+
+## Data Handling
+
+- Process by state or regional subset first for development and validation.
+- When converting polygons to H3 cells, note the containment mode used (center, overlapping, full).
+- Document data source and date in script comments or metadata when creating processed files.
+
+## Future Interface
+
+- Visualization target is MapLibre / Mapbox + deck.gl H3HexagonLayer.
+- Backend queries should accept a list of H3 indexes and return aggregated impact metrics.
