@@ -28,6 +28,7 @@ uv run python -m nws_h3_impacts
 src/nws_h3_impacts/     # Main package
 scripts/                # Aggregation and conversion scripts
 notebooks/              # Exploration
+docs/                   # Field definitions and notes
 data/                   # Local data (gitignored)
   raw/                  # Source downloads
   processed/            # H3-aggregated Parquet files
@@ -36,8 +37,9 @@ data/                   # Local data (gitignored)
 
 ## Data Notes
 
-- **Structures**: FEMA USA Structures (state-level downloads recommended for initial work)
-- **Population**: WorldPop or LandScan (clip to area of interest first)
+- **Structures**: USACE National Structure Inventory, aggregated to H3 in `data/processed/nsi_h3_res7.parquet`
+- **Population**: NSI day and night population on that same grid. Census Gridded EIF age, race, and sex counts are in `data/processed/eif_ageracesex_h3_res7.parquet`. WorldPop or LandScan remain options for an independent check.
+- **Field definitions**: [docs/fields.md](docs/fields.md)
 - **Hazards**: `api.weather.gov/alerts/active` (GeoJSON)
 - **Forecasts**: NDFD / GRIB converted to H3 via centroid sampling
 

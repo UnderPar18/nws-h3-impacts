@@ -15,20 +15,31 @@ Example:
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+import geopandas as gpd
 import h3
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
+from shapely.geometry import shape
 from tqdm import tqdm
+
+_SRC = Path(__file__).resolve().parents[1] / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from nws_h3_impacts.nws_hazard_styles import hazard_style
 
 NWS_ALERTS_URL = "https://api.weather.gov/alerts/active"
 # api.weather.gov rejects requests that do not send a descriptive User-Agent.
 USER_AGENT = "nws-h3-impacts/0.1.0 (research; h3 alert polyfill)"
 DEFAULT_OUTPUT = Path("data/processed/active_alerts_h3_res7.parquet")
+DEFAULT_POLYGONS = Path("data/processed/active_alerts_polygons.gpkg")
+POLYGON_LAYER = "alerts"
 
 METADATA_COLUMNS = (
     "alert_id",
@@ -192,6 +203,33 @@ def write_alerts_parquet(
     print(f"Wrote {len(frame):,} rows to {output_path}")
 
 
+def write_alert_polygons(features: list[dict], output_path: Path, fetched_at: str) -> None:
+    """Write one GeoPackage feature per alert polygon, with NWS color and priority."""
+    rows: list[dict[str, str | int | None]] = []
+    geometries = []
+    for feature in features:
+        geometry = feature.get("geometry")
+        geom_type = geometry.get("type") if isinstance(geometry, dict) else None
+        if geom_type not in POLYGON_TYPES:
+            continue
+        row = alert_metadata(feature)
+        row.update(hazard_style(row["event"]))
+        row["fetched_at"] = fetched_at
+        rows.append(row)
+        geometries.append(shape(geometry))
+
+    frame = gpd.GeoDataFrame(rows, geometry=geometries, crs="EPSG:4326")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        output_path.unlink()
+    frame.to_file(output_path, layer=POLYGON_LAYER, driver="GPKG")
+    missing = int(frame["nws_priority"].isna().sum()) if not frame.empty else 0
+    print(
+        f"Wrote {len(frame):,} alert polygons to {output_path} "
+        f"({missing:,} events without an NWS map color)"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Polyfill active NWS alerts to H3 cells")
     parser.add_argument(
@@ -199,6 +237,12 @@ def main() -> None:
         type=Path,
         default=DEFAULT_OUTPUT,
         help="Output Parquet path",
+    )
+    parser.add_argument(
+        "--polygons",
+        type=Path,
+        default=DEFAULT_POLYGONS,
+        help="Output GeoPackage of the original alert polygons",
     )
     parser.add_argument("--resolution", type=int, default=7, help="H3 resolution")
     parser.add_argument("--url", default=NWS_ALERTS_URL, help="Active alerts GeoJSON URL")
@@ -212,6 +256,7 @@ def main() -> None:
 
     frame = alerts_to_cells(features, args.resolution)
     write_alerts_parquet(frame, args.output, args.resolution, fetched_at, args.url)
+    write_alert_polygons(features, args.polygons, fetched_at)
 
 
 if __name__ == "__main__":

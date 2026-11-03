@@ -1,0 +1,147 @@
+"""NWS hazard map colors and display priority.
+
+Source: https://www.weather.gov/help-map
+List dated March 10, 2025. Priority 1 is the most significant threat. The
+weather.gov map shows only the highest-priority event in a zone.
+"""
+
+from __future__ import annotations
+
+# event, priority, color name, hex code without a leading #
+_HAZARDS: tuple[tuple[str, int, str, str], ...] = (
+    ("Tsunami Warning", 1, "Tomato", "FD6347"),
+    ("Tornado Warning", 2, "Red", "FF0000"),
+    ("Extreme Wind Warning", 3, "Darkorange", "FF8C00"),
+    ("Severe Thunderstorm Warning", 4, "Orange", "FFA500"),
+    ("Flash Flood Warning", 5, "Darkred", "8B0000"),
+    ("Flash Flood Statement", 6, "Darkred", "8B0000"),
+    ("Severe Weather Statement", 7, "Aqua", "00FFFF"),
+    ("Shelter In Place Warning", 8, "Salmon", "FA8072"),
+    ("Evacuation Immediate", 9, "Chartreuse", "7FFF00"),
+    ("Civil Danger Warning", 10, "Lightpink", "FFB6C1"),
+    ("Nuclear Power Plant Warning", 11, "Indigo", "4B0082"),
+    ("Radiological Hazard Warning", 12, "Indigo", "4B0082"),
+    ("Hazardous Materials Warning", 13, "Indigo", "4B0082"),
+    ("Fire Warning", 14, "Sienna", "A0522D"),
+    ("Civil Emergency Message", 15, "Lightpink", "FFB6C1"),
+    ("Law Enforcement Warning", 16, "Silver", "C0C0C0"),
+    ("Storm Surge Warning", 17, "Darkpurple", "B524F7"),
+    ("Hurricane Force Wind Warning", 18, "Westernred", "CD5C5C"),
+    ("Hurricane Warning", 19, "Crimson", "DC143C"),
+    ("Typhoon Warning", 20, "Crimson", "DC143C"),
+    ("Special Marine Warning", 21, "Orange", "FFA500"),
+    ("Blizzard Warning", 22, "Orangered", "FF4500"),
+    ("Snow Squall Warning", 23, "Mediumvioletred", "C71585"),
+    ("Ice Storm Warning", 24, "Darkmagenta", "8B008B"),
+    ("Heavy Freezing Spray Warning", 25, "Deepskyblue", "00BFFF"),
+    ("Winter Storm Warning", 26, "Hotpink", "FF69B4"),
+    ("Lake Effect Snow Warning", 27, "Darkcyan", "008B8B"),
+    ("Dust Storm Warning", 28, "Bisque", "FFE4C4"),
+    ("Blowing Dust Warning", 29, "Bisque", "FFE4C4"),
+    ("High Wind Warning", 30, "Goldenrod", "DAA520"),
+    ("Tropical Storm Warning", 31, "Firebrick", "B22222"),
+    ("Storm Warning", 32, "Darkviolet", "9400D3"),
+    ("Tsunami Advisory", 33, "Chocolate", "D2691E"),
+    ("Tsunami Watch", 34, "Fushsia", "FF00FF"),
+    ("Avalanche Warning", 35, "Dodgerblue", "1E90FF"),
+    ("Earthquake Warning", 36, "Saddlebrown", "8B4513"),
+    ("Volcano Warning", 37, "darkslategray", "2F4F4F"),
+    ("Ashfall Warning", 38, "Darkgray", "A9A9A9"),
+    ("Flood Warning", 39, "Lime", "00FF00"),
+    ("Coastal Flood Warning", 40, "Forestgreen", "228B22"),
+    ("Lakeshore Flood Warning", 41, "Forestgreen", "228B22"),
+    ("Ashfall Advisory", 42, "Dimgray", "696969"),
+    ("High Surf Warning", 43, "Forestgreen", "228B22"),
+    ("Extreme Heat Warning", 44, "Mediumvioletred", "C71585"),
+    ("Tornado Watch", 45, "Yellow", "FFFF00"),
+    ("Severe Thunderstorm Watch", 46, "Palevioletred", "DB7093"),
+    ("Flash Flood Watch", 47, "Seagreen", "2E8B57"),
+    ("Gale Warning", 48, "Plum", "DDA0DD"),
+    ("Flood Statement", 49, "Lime", "00FF00"),
+    ("Extreme Cold Warning", 50, "Blue", "0000FF"),
+    ("Freeze Warning", 51, "Darkslateblue", "483D8B"),
+    ("Red Flag Warning", 52, "Deeppink", "FF1493"),
+    ("Storm Surge Watch", 53, "Lightpurple", "DB7FF7"),
+    ("Hurricane Watch", 54, "Magenta", "FF00FF"),
+    ("Hurricane Force Wind Watch", 55, "Darkorchid", "9932CC"),
+    ("Typhoon Watch", 56, "Magenta", "FF00FF"),
+    ("Tropical Storm Watch", 57, "Lightcoral", "F08080"),
+    ("Storm Watch", 58, "Moccasin", "FFE4B5"),
+    ("Tropical Cyclone Local Statement", 59, "Moccasin", "FFE4B5"),
+    ("Winter Weather Advisory", 60, "Mediumslateblue", "7B68EE"),
+    ("Avalanche Advisory", 61, "Peru", "CD853F"),
+    ("Cold Weather Advisory", 62, "Paleturquoise", "AFEEEE"),
+    ("Heat Advisory", 63, "Coral", "FF7F50"),
+    ("Flood Advisory", 64, "Springgreen", "00FF7F"),
+    ("Coastal Flood Advisory", 65, "Lawngreen", "7CFC00"),
+    ("Lakeshore Flood Advisory", 66, "Lawngreen", "7CFC00"),
+    ("High Surf Advisory", 67, "Mediumorchid", "BA55D3"),
+    ("Dense Fog Advisory", 68, "Slategray", "708090"),
+    ("Dense Smoke Advisory", 69, "Khaki", "F0E68C"),
+    ("Small Craft Advisory", 70, "Thistle", "D8BFD8"),
+    ("Brisk Wind Advisory", 71, "Thistle", "D8BFD8"),
+    ("Hazardous Seas Warning", 72, "Thistle", "D8BFD8"),
+    ("Dust Advisory", 73, "Darkkhaki", "BDB76B"),
+    ("Blowing Dust Advisory", 74, "Darkkhaki", "BDB76B"),
+    ("Lake Wind Advisory", 75, "Tan", "D2B48C"),
+    ("Wind Advisory", 76, "Tan", "D2B48C"),
+    ("Frost Advisory", 77, "Cornflowerblue", "6495ED"),
+    ("Freezing Fog Advisory", 78, "Teal", "008080"),
+    ("Freezing Spray Advisory", 79, "Deepskyblue", "00BFFF"),
+    ("Low Water Advisory", 80, "Brown", "A52A2A"),
+    ("Local Area Emergency", 81, "Silver", "C0C0C0"),
+    ("Winter Storm Watch", 82, "Steelblue", "4682B4"),
+    ("Rip Current Statement", 83, "Turquoise", "40E0D0"),
+    ("Beach Hazards Statement", 84, "Turquoise", "40E0D0"),
+    ("Gale Watch", 85, "Pink", "FFC0CB"),
+    ("Avalanche Watch", 86, "Sandybrown", "F4A460"),
+    ("Hazardous Seas Watch", 87, "Darkslateblue", "483D8B"),
+    ("Heavy Freezing Spray Watch", 88, "Rosybrown", "BC8F8F"),
+    ("Flood Watch", 89, "Seagreen", "2E8B57"),
+    ("Coastal Flood Watch", 90, "Mediumaquamarine", "66CDAA"),
+    ("Lakeshore Flood Watch", 91, "Mediumaquamarine", "66CDAA"),
+    ("High Wind Watch", 92, "Darkgoldenrod", "B8860B"),
+    ("Extreme Heat Watch", 93, "Maroon", "800000"),
+    ("Extreme Cold Watch", 94, "CadetBlue", "5F9EA0"),
+    ("Freeze Watch", 95, "Cyan", "00FFFF"),
+    ("Fire Weather Watch", 96, "Navajowhite", "FFDEAD"),
+    ("Extreme Fire Danger", 97, "Darksalmon", "E9967A"),
+    ("911 Telephone Outage", 98, "Silver", "C0C0C0"),
+    ("Coastal Flood Statement", 99, "Olivedrab", "6B8E23"),
+    ("Lakeshore Flood Statement", 100, "Olivedrab", "6B8E23"),
+    ("Special Weather Statement", 101, "Moccasin", "FFE4B5"),
+    ("Marine Weather Statement", 102, "Peachpuff", "FFDAB9"),
+    ("Air Quality Alert", 103, "Gray", "808080"),
+    ("Air Stagnation Advisory", 104, "Gray", "808080"),
+    ("Hazardous Weather Outlook", 105, "Palegoldenrod", "EEE8AA"),
+    ("Hydrologic Outlook", 106, "Lightgreen", "90EE90"),
+    ("Short Term Forecast", 107, "Palegreen", "98FB98"),
+    ("Administrative Message", 108, "Silver", "C0C0C0"),
+    ("Test", 109, "Azure", "F0FFFF"),
+    ("Child Abduction Emergency", 110, "Transparent", "FFFFFF"),
+    ("Blue Alert", 111, "Transparent", "FFFFFF"),
+)
+
+HAZARD_STYLES: dict[str, dict[str, int | str]] = {
+    event: {
+        "nws_priority": priority,
+        "nws_color_name": color_name,
+        "nws_color_hex": f"#{hex_code}",
+        "nws_color_rgb": f"{int(hex_code[0:2], 16)},{int(hex_code[2:4], 16)},{int(hex_code[4:6], 16)}",
+    }
+    for event, priority, color_name, hex_code in _HAZARDS
+}
+
+UNKNOWN_PRIORITY = 999
+
+
+def hazard_style(event: str | None) -> dict[str, int | str | None]:
+    """Return the weather.gov color and priority for an alert event name."""
+    if event and event in HAZARD_STYLES:
+        return dict(HAZARD_STYLES[event])
+    return {
+        "nws_priority": None,
+        "nws_color_name": None,
+        "nws_color_hex": None,
+        "nws_color_rgb": None,
+    }
