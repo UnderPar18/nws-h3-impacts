@@ -35,6 +35,23 @@ data/                   # Local data (gitignored)
 .cursor/rules/          # Cursor AI conventions
 ```
 
+## Refresh active alerts
+
+When the inventories are already built, update the hazard outputs with one script:
+
+```bash
+python scripts/refresh_active_alerts.py
+```
+
+That fetches the current alerts, writes `data/processed/active_alerts_polygons.gpkg`, and rebuilds `data/processed/active_alerts_h3_res7.gpkg` by joining those cells to the existing NSI and Census grids. Close both GeoPackages in ArcGIS Pro first.
+
+Rebuild the static grids only when the source inventories change, not on a routine alert refresh:
+
+```bash
+python scripts/aggregate_nsi_to_h3.py --input-dir <state NSI zip folder> --output data/processed/nsi_h3_res7.parquet
+python scripts/aggregate_eif_to_h3.py
+```
+
 ## Data Notes
 
 - **Structures**: USACE National Structure Inventory, aggregated to H3 in `data/processed/nsi_h3_res7.parquet`
