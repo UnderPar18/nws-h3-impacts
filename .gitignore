@@ -1,0 +1,9 @@
+.venv/
+data/
+*.grib*
+*.nc
+__pycache__/
+.env
+*.parquet
+*.gpkg
+*.shp
