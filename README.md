@@ -1,70 +1,56 @@
 # NWS H3 Impacts
 
-H3-based impact analysis framework for overlaying NWS hazard polygons and NDFD forecast thresholds against population and structure data.
+Polyfill active National Weather Service alerts onto H3 resolution 7 and join those cells to structure and population counts.
 
-## Goals
+This project stays separate from `nws-h3-ndfd`. Both use the same H3 index string, so a forecast Parquet can be joined to these alert cells without combining the repositories.
 
-- Aggregate population and national structure inventories to H3 resolution 7 (closest practical match to NDFD ~2.5 km)
-- Efficiently evaluate impacts inside NWS hazard polygons via integer H3 joins
-- Apply NDFD parameter thresholds to infer potential impacts
-- Support interactive visualization of hazards and impact summaries
+## Run
 
-## Quick Start
-
-```bash
-# Create environment and install dependencies
+```powershell
 uv sync
 
-# Or with optional web dependencies later
-uv sync --extra web --extra dev
-
-# Activate (uv handles this automatically with uv run)
-uv run python -m nws_h3_impacts
+uv run python scripts/refresh_active_alerts.py
 ```
 
-## Project Layout
+That downloads the current alerts and writes three files under `data/processed/`. That directory is gitignored. Close the GeoPackages in ArcGIS Pro first. A file that is open in Pro cannot be replaced.
 
+The refresh expects these grids to already exist:
+
+- `data/processed/nsi_h3_res7.parquet`
+- `data/processed/eif_ageracesex_h3_res7.parquet`
+- `data/processed/eif_raceincome_h3_res7.parquet`
+
+## Output
+
+| File | Contents |
+| --- | --- |
+| `active_alerts_polygons.gpkg` | One feature per active alert polygon, for display in ArcGIS Pro |
+| `active_alerts_h3_res7.parquet` | One row per H3 cell and alert |
+| `active_alerts_h3_res7.gpkg` | One hexagon per H3 cell, joined to the structure and population grids |
+
+`h3` is the resolution 7 index string. Alert cells use center containment: `h3.polygon_to_cells` keeps a cell when its center falls inside the polygon. When several alerts cover one cell, the hexagon lists every event and keeps the single highest-priority event, using the weather.gov hazards-map colors. Column definitions are in [docs/fields.md](docs/fields.md).
+
+An alert cell with no buildings is kept. Its inventory fields are 0.
+
+## Inventories
+
+Rebuild the static grids only when the source inventories change, not on a routine alert refresh.
+
+```powershell
+uv run python scripts/aggregate_nsi_to_h3.py --input-dir <state NSI zip folder> --output data/processed/nsi_h3_res7.parquet
+uv run python scripts/aggregate_eif_to_h3.py
 ```
-src/nws_h3_impacts/     # Main package
-scripts/                # Aggregation and conversion scripts
-notebooks/              # Exploration
-docs/                   # Field definitions and notes
-data/                   # Local data (gitignored)
-  raw/                  # Source downloads
-  processed/            # H3-aggregated Parquet files
-.cursor/rules/          # Cursor AI conventions
-```
 
-## Refresh active alerts
+`--input-dir` is a folder of state `*_NSI.zip` extracts from the USACE National Structure Inventory. `US_NSI.zip` is skipped because it repeats the state files. Each building is assigned with `h3.latlng_to_cell` from its longitude and latitude. Cells that cross a state line are summed after the states are aggregated.
 
-When the inventories are already built, update the hazard outputs with one script:
+`aggregate_eif_to_h3.py` reads `data/raw/gridded_eif_pop_ageracesex_2025_realtime.parquet` and writes the age, race, and sex grid. The race-income grid, `eif_raceincome_h3_res7.parquet`, is a separate file and stays in place. A grid point is placed in the H3 cell that contains its centroid. Counts are Census `n_noise_postprocessed` values. They can be fractional, and they differ from the NSI day and night population.
 
-```bash
-python scripts/refresh_active_alerts.py
-```
+`scripts/aggregate_structures_to_h3.py` aggregates a local structure shapefile, such as a district extract. The alert refresh joins the national NSI grid.
 
-That fetches the current alerts, writes `data/processed/active_alerts_polygons.gpkg`, and rebuilds `data/processed/active_alerts_h3_res7.gpkg` by joining those cells to the existing NSI and Census grids. Close both GeoPackages in ArcGIS Pro first.
+## Source
 
-Rebuild the static grids only when the source inventories change, not on a routine alert refresh:
+Active alerts come from `https://api.weather.gov/alerts/active`. The request sends a descriptive User-Agent. The NWS API rejects calls that omit one.
 
-```bash
-python scripts/aggregate_nsi_to_h3.py --input-dir <state NSI zip folder> --output data/processed/nsi_h3_res7.parquet
-python scripts/aggregate_eif_to_h3.py
-```
+Structure counts come from the [USACE National Structure Inventory](https://www.hec.usace.army.mil/confluence/nsi/technicalreferences/2026/technical-documentation). Dollar values are depreciated replacement value.
 
-## Data Notes
-
-- **Structures**: USACE National Structure Inventory, aggregated to H3 in `data/processed/nsi_h3_res7.parquet`
-- **Population**: NSI day and night population on that same grid. Census Gridded EIF age, race, and sex counts are in `data/processed/eif_ageracesex_h3_res7.parquet`. WorldPop or LandScan remain options for an independent check.
-- **Field definitions**: [docs/fields.md](docs/fields.md)
-- **Hazards**: `api.weather.gov/alerts/active` (GeoJSON)
-- **Forecasts**: NDFD / GRIB converted to H3 via centroid sampling
-
-Start with a single state or county subset. National full-resolution processing is feasible but memory- and time-intensive.
-
-## Development
-
-- Default H3 resolution: **7**
-- Prefer integer H3 index joins over geometric intersections
-- Store processed aggregates as Parquet keyed on H3 index
-- Use `uv` for environment and dependency management
+Population counts come from the Census Bureau Gridded Environmental Impacts Frame, 2025 realtime age-by-race-by-sex file: `https://www2.census.gov/ces/gridded_eif/gridded_eif_pop_ageracesex_2025_realtime.parquet`.

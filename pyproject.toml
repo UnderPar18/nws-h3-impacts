@@ -1,7 +1,7 @@
 [project]
 name = "nws-h3-impacts"
 version = "0.1.0"
-description = "H3-based impact analysis for NWS hazards and NDFD forecasts"
+description = "Join active NWS alerts to structure and population counts on an H3 grid"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
